@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemie Übung: Variante B - Normgerechte Lewis-Strukturen</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #16a34a;
+            --error: #dc2626;
+            --bg: #f8fafc;
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #1e293b; padding: 10px; }
+        .wrapper { max-width: 700px; margin: 10px auto; background: white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 25px; }
+        .mol-box { border: 2px solid #e2e8f0; border-radius: 12px; margin: 15px 0; display: flex; justify-content: center; align-items: center; min-height: 320px; background: #fff; }
+        .atom { font-size: 20px; font-weight: bold; font-family: "Arial", sans-serif; }
+        .target { fill: none; stroke: #f59e0b; stroke-width: 3; stroke-dasharray: 5; }
+        .lp-line { stroke-width: 2; } /* Style für Elektronenpaar-Striche */
+        .step-container { margin-top: 20px; }
+        .step-box { background: #f8fafc; padding: 15px; border-radius: 12px; border-left: 6px solid #cbd5e0; margin-bottom: 10px; }
+        .step-box.active { border-left-color: var(--primary); background: #eff6ff; }
+        .step-box.completed { border-left-color: var(--success); opacity: 0.9; }
+        .step-title { font-weight: bold; margin-bottom: 8px; display: block; color: #475569; }
+        .history-text { color: var(--success); font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input { width: 80px; padding: 8px; border: 2px solid #cbd5e0; border-radius: 8px; text-align: center; font-size: 1.1rem; outline: none; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .hidden { display: none; }
+        .feedback { font-weight: bold; margin-top: 5px; font-size: 0.9rem; }
+        .nav { font-size: 0.9rem; color: #64748b; margin-bottom: 10px; font-weight: bold; display: flex; justify-content: space-between;}
+    </style>
+</head>
+<body>
+
+<div class="wrapper" id="main-content">
+    <div class="nav">
+        <span id="prog">Aufgabe 1/15</span>
+        <span id="mol-name" style="color: var(--primary);">Molekülname</span>
+    </div>
+    <div class="mol-box" id="stage"></div>
+    <div class="step-container">
+        <div id="box1" class="step-box active">
+            <span class="step-title">Schritt 1: Formale Zuteilung</span>
+            <p style="margin: 5px 0;">Wie viele Elektronen werden dem markierten Atom formal zugeteilt (EN-Vergleich)?</p>
+            <input type="number" id="in1"> <button id="btn1" onclick="checkStep1()">Prüfen</button>
+            <div id="msg1" class="feedback"></div>
+        </div>
+        <div id="box2" class="step-box hidden">
+            <span class="step-title">Schritt 2: Neutralzustand (PSE)</span>
+            <div id="hist1" class="history-text"></div>
+            <p style="margin: 5px 0;">Wie viele Außenelektronen hat dieses Atom laut PSE?</p>
+            <input type="number" id="in2"> <button id="btn2" onclick="checkStep2()">Prüfen</button>
+            <div id="msg2" class="feedback"></div>
+        </div>
+        <div id="box3" class="step-box hidden">
+            <span class="step-title">Schritt 3: Differenzbildung</span>
+            <div id="hist2" class="history-text"></div>
+            <p style="margin: 5px 0;">Berechne die Differenz (PSE-Zahl minus zugeteilte Elektronen):</p>
+            <input type="number" id="in3"> <button id="btn3" onclick="checkStep3()">Abschließen</button>
+            <div id="msg3" class="feedback"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const data = [
+        { n: "Propan (C2-Atom)", e: 6, pse: 4, ox: -2, svg: `<svg width="300" height="200" viewBox="0 0 300 200">
+            <circle cx="150" cy="100" r="22" class="target"/><text x="143" y="107" class="atom">C</text>
+            <line x1="128" y1="100" x2="102" y2="100" stroke="black" stroke-width="2"/><text x="85" y="107" class="atom">C</text>
+            <line x1="172" y1="100" x2="198" y2="100" stroke="black" stroke-width="2"/><text x="211" y="107" class="atom">C</text>
+            <line x1="150" y1="78" x2="150" y2="55" stroke="black" stroke-width="2"/><text x="143" y="48" class="atom">H</text>
+            <line x1="150" y1="122" x2="150" y2="145" stroke="black" stroke-width="2"/><text x="143" y="165" class="atom">H</text>
+            <line x1="92" y1="78" x2="92" y2="55" stroke="black" stroke-width="2"/><text x="85" y="48" class="atom">H</text>
+            <line x1="92" y1="122" x2="92" y2="145" stroke="black" stroke-width="2"/><text x="85" y="165" class="atom">H</text>
+            <line x1="63" y1="100" x2="45" y2="100" stroke="black" stroke-width="2"/><text x="25" y="107" class="atom">H</text>
+            <line x1="218" y1="78" x2="218" y2="55" stroke="black" stroke-width="2"/><text x="211" y="48" class="atom">H</text>
+            <line x1="218" y1="122" x2="218" y2="145" stroke="black" stroke-width="2"/><text x="211" y="165" class="atom">H</text>
+            <line x1="232" y1="100" x2="250" y2="100" stroke="black" stroke-width="2"/><text x="260" y="107" class="atom">H</text>
+        </svg>` },
+        { n: "Aceton (C2-Atom)", e: 2, pse: 4, ox: 2, svg: `<svg width="260" height="200">
+            <circle cx="130" cy="110" r="22" class="target"/><text x="123" y="117" class="atom">C</text>
+            <line x1="126" y1="88" x2="126" y2="55" stroke="red" stroke-width="3"/><line x1="134" y1="88" x2="134" y2="55" stroke="red" stroke-width="3"/>
+            <text x="123" y="45" class="atom" fill="red">O</text>
+            <line x1="110" y1="35" x2="120" y2="25" stroke="red" stroke-width="2"/><line x1="140" y1="25" x2="150" y2="35" stroke="red" stroke-width="2"/>
+            <line x1="108" y1="110" x2="82" y2="110" stroke="black" stroke-width="2"/><text x="65" y="117" class="atom">C</text>
+            <line x1="152" y1="110" x2="178" y2="110" stroke="black" stroke-width="2"/><text x="191" y="117" class="atom">C</text>
+            <line x1="72" y1="88" x2="72" y2="65" stroke="black" stroke-width="2"/><text x="65" y="58" class="atom">H</text>
+            <line x1="72" y1="132" x2="72" y2="155" stroke="black" stroke-width="2"/><text x="65" y="175" class="atom">H</text>
+            <line x1="43" y1="110" x2="25" y2="110" stroke="black" stroke-width="2"/><text x="5" y="117" class="atom">H</text>
+            <line x1="198" y1="88" x2="198" y2="65" stroke="black" stroke-width="2"/><text x="191" y="58" class="atom">H</text>
+            <line x1="198" y1="132" x2="198" y2="155" stroke="black" stroke-width="2"/><text x="191" y="175" class="atom">H</text>
+            <line x1="212" y1="110" x2="230" y2="110" stroke="black" stroke-width="2"/><text x="235" y="117" class="atom">H</text>
+        </svg>` },
+        { n: "Ethylamin (N-Atom)", e: 8, pse: 5, ox: -3, svg: `<svg width="240" height="200">
+            <circle cx="160" cy="100" r="22" class="target"/><text x="152" y="107" class="atom" fill="blue">N</text>
+            <line x1="150" y1="75" x2="170" y2="75" stroke="blue" stroke-width="2"/>
+            <line x1="138" y1="100" x2="112" y2="100" stroke="black" stroke-width="2"/><text x="95" y="107" class="atom">C</text>
+            <line x1="160" y1="122" x2="160" y2="145" stroke="black" stroke-width="2"/><text x="153" y="165" class="atom">H</text>
+            <line x1="182" y1="100" x2="205" y2="100" stroke="black" stroke-width="2"/><text x="215" y="107" class="atom">H</text>
+            <line x1="102" y1="78" x2="102" y2="55" stroke="black" stroke-width="2"/><text x="95" y="48" class="atom">H</text>
+            <line x1="102" y1="122" x2="102" y2="145" stroke="black" stroke-width="2"/><text x="95" y="165" class="atom">H</text>
+            <line x1="73" y1="100" x2="55" y2="100" stroke="black" stroke-width="2"/><text x="35" y="107" class="atom">C</text>
+            <line x1="42" y1="78" x2="42" y2="55" stroke="black" stroke-width="2"/><text x="35" y="48" class="atom">H</text>
+            <line x1="42" y1="122" x2="42" y2="145" stroke="black" stroke-width="2"/><text x="35" y="165" class="atom">H</text>
+            <line x1="13" y1="100" x2="30" y2="100" stroke="black" stroke-width="2"/><text x="2" y="107" class="atom">H</text>
+        </svg>` },
+        { n: "Brommethan (C-Atom)", e: 6, pse: 4, ox: -2, svg: `<svg width="200" height="200">
+            <circle cx="100" cy="100" r="22" class="target"/><text x="93" y="107" class="atom">C</text>
+            <line x1="100" y1="78" x2="100" y2="50" stroke="#a52a2a" stroke-width="2"/><text x="88" y="42" class="atom" fill="#a52a2a">Br</text>
+            <line x1="80" y1="25" x2="95" y2="15" stroke="#a52a2a" stroke-width="2"/>
+            <line x1="105" y1="15" x2="120" y2="25" stroke="#a52a2a" stroke-width="2"/>
+            <line x1="75" y1="35" x2="75" y2="50" stroke="#a52a2a" stroke-width="2"/>
+            <line x1="78" y1="100" x2="50" y2="100" stroke="black" stroke-width="2"/><text x="30" y="107" class="atom">H</text>
+            <line x1="122" y1="100" x2="150" y2="100" stroke="black" stroke-width="2"/><text x="160" y="107" class="atom">H</text>
+            <line x1="100" y1="122" x2="100" y2="145" stroke="black" stroke-width="2"/><text x="93" y="165" class="atom">H</text>
+        </svg>` },
+        { n: "Kohlensäure (C-Atom)", e: 0, pse: 4, ox: 4, svg: `<svg width="220" height="200">
+            <circle cx="110" cy="110" r="22" class="target"/><text x="103" y="117" class="atom">C</text>
+            <line x1="106" y1="88" x2="106" y2="55" stroke="red" stroke-width="3"/><line x1="114" y1="88" x2="114" y2="55" stroke="red" stroke-width="3"/><text x="103" y="50" class="atom" fill="red">O</text>
+            <line x1="90" y1="35" x2="100" y2="25" stroke="red" stroke-width="2"/><line x1="120" y1="25" x2="130" y2="35" stroke="red" stroke-width="2"/>
+            <line x1="92" y1="122" x2="65" y2="135" stroke="red" stroke-width="2"/><text x="45" y="145" class="atom" fill="red">O</text>
+            <line x1="30" y1="130" x2="30" y2="150" stroke="red" stroke-width="2"/><line x1="40" y1="160" x2="55" y2="160" stroke="red" stroke-width="2"/>
+            <line x1="128" y1="122" x2="155" y2="135" stroke="red" stroke-width="2"/><text x="165" y="145" class="atom" fill="red">O</text>
+            <line x1="185" y1="130" x2="185" y2="150" stroke="red" stroke-width="2"/><line x1="165" y1="160" x2="180" y2="160" stroke="red" stroke-width="2"/>
+            <line x1="45" y1="155" x2="45" y2="175" stroke="black" stroke-width="2"/><text x="38" y="195" class="atom">H</text>
+            <line x1="175" y1="155" x2="175" y2="175" stroke="black" stroke-width="2"/><text x="168" y="195" class="atom">H</text>
+        </svg>` }
+    ];
+
+    /* ... Der restliche JavaScript-Code bleibt identisch zur vorherigen Version ... */
+    let currentIdx = 0;
+
+    function render() {
+        const item = data[currentIdx];
+        document.getElementById('prog').innerText = `Aufgabe ${currentIdx + 1}/${data.length}`;
+        document.getElementById('mol-name').innerText = item.n;
+        document.getElementById('stage').innerHTML = item.svg;
+        
+        resetStep(1);
+        resetStep(2);
+        resetStep(3);
+        document.getElementById('box2').classList.add('hidden');
+        document.getElementById('box3').classList.add('hidden');
+        document.getElementById('box1').className = 'step-box active';
+    }
+
+    function resetStep(n) {
+        document.getElementById('in' + n).value = "";
+        document.getElementById('in' + n).disabled = false;
+        document.getElementById('btn' + n).disabled = false;
+        document.getElementById('msg' + n).innerText = "";
+        if(document.getElementById('hist' + (n-1))) document.getElementById('hist' + (n-1)).innerText = "";
+    }
+
+    function checkStep1() {
+        const val = parseInt(document.getElementById('in1').value);
+        if (val === data[currentIdx].e) {
+            document.getElementById('msg1').innerText = "Korrekt!";
+            document.getElementById('msg1').style.color = "var(--success)";
+            document.getElementById('in1').disabled = true;
+            document.getElementById('btn1').disabled = true;
+            document.getElementById('box1').className = "step-box completed";
+            document.getElementById('hist1').innerText = "Zugeteilte Elektronen: " + val;
+            document.getElementById('box2').classList.remove('hidden');
+            document.getElementById('box2').className = "step-box active";
+        } else {
+            document.getElementById('msg1').innerText = "Leider falsch. Prüfe die Elektronegativität!";
+            document.getElementById('msg1').style.color = "var(--error)";
+        }
+    }
+
+    function checkStep2() {
+        const val = parseInt(document.getElementById('in2').value);
+        if (val === data[currentIdx].pse) {
+            document.getElementById('msg2').innerText = "Richtig!";
+            document.getElementById('msg2').style.color = "var(--success)";
+            document.getElementById('in2').disabled = true;
+            document.getElementById('btn2').disabled = true;
+            document.getElementById('box2').className = "step-box completed";
+            document.getElementById('hist2').innerText = "PSE-Zahl (Außenelektronen): " + val;
+            document.getElementById('box3').classList.remove('hidden');
+            document.getElementById('box3').className = "step-box active";
+        } else {
+            document.getElementById('msg2').innerText = "Falsch. Schau in die Hauptgruppe des Atoms.";
+            document.getElementById('msg2').style.color = "var(--error)";
+        }
+    }
+
+    function checkStep3() {
+        const val = parseInt(document.getElementById('in3').value);
+        if (val === data[currentIdx].ox) {
+            document.getElementById('msg3').innerText = "Hervorragend!";
+            document.getElementById('msg3').style.color = "var(--success)";
+            setTimeout(() => {
+                currentIdx++;
+                if (currentIdx < data.length) render();
+                else {
+                    document.getElementById('main-content').innerHTML = `
+                        <div style="text-align:center; padding: 40px;">
+                            <h2 style="color: var(--primary);">Übung abgeschlossen! 🎓</h2>
+                            <p>Alle Aufgaben wurden korrekt analysiert.</p>
+                            <button onclick="location.reload()">Neustart</button>
+                        </div>`;
+                }
+            }, 1200);
+        } else {
+            document.getElementById('msg3').innerText = "Rechenfehler! PSE-Zahl minus zugeteilte e-";
+            document.getElementById('msg3').style.color = "var(--error)";
+        }
+    }
+
+    render();
+</script>
+</body>
+</html>
